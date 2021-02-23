@@ -9,6 +9,7 @@ import wave
 import matplotlib.pyplot as plt
 
 import tensorflow as tf
+import tensorflow_io as tfio
 from tensorflow import keras
 
 
@@ -16,7 +17,8 @@ os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 CHUNK = 1050
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
-OUTPUT_SR = RATE = 22050
+OUTPUT_SR = RATE = 22050*2
+MODEL_SR = 22050
 DUR = RECORD_SECONDS = 1
 WAVE_OUTPUT_FILENAME = "output.wav"
 HOST_API = pyaudio.paMME #MME (default)
@@ -48,7 +50,7 @@ def list_devices():
 def get_spectrogram(waveform):
     # Padding for files with less than 16000 samples
     zero_padding = tf.zeros(
-        [OUTPUT_SR*DUR] - tf.shape(waveform), dtype=tf.float32)
+        [MODEL_SR*DUR] - tf.shape(waveform), dtype=tf.float32)
 
     # Concatenate audio with padding so that all audio clips will be of the
     # same length
@@ -94,7 +96,9 @@ def main():
             write_wav(frames)
             audio_binary = tf.io.read_file(WAVE_OUTPUT_FILENAME)
             waveform = decode_audio(audio_binary)
+            waveform = tfio.audio.resample(waveform, RATE, MODEL_SR)
             # print(tensor)
+            print(waveform.shape)
             spectrogram = get_spectrogram(waveform)
             #plt.imshow(spectrogram)
             img.set_data(spectrogram)
